@@ -216,55 +216,23 @@ function renderTreeView(sections) {
     toggles.forEach(toggle => {
         toggle.addEventListener('click', function(e) {
             e.stopPropagation();
-            const parent = this.parentElement.parentElement;
-            const ul = parent.querySelector('ul');
-            const sectionId = this.parentElement.getAttribute('data-section');
-            
-            if (ul) {
-                const isCollapsing = !ul.classList.contains('hidden');
-                
-                // Toggle the immediate children visibility in TOC
-                ul.classList.toggle('hidden');
-                this.textContent = isCollapsing ? '+' : '-';
-                
-                // Toggle corresponding content sections
-                toggleContentSections(sectionId, isCollapsing);
-                
-                // More explicit way to handle all nested children when collapsing
-                if (isCollapsing) {
-                    // Find ALL nested ULs and collapse them
-                    const allNestedUls = parent.querySelectorAll('ul');
-                    allNestedUls.forEach(nestedUl => {
-                        nestedUl.classList.add('hidden');
-                    });
-                    
-                    // Update ALL nested toggle buttons
-                    const allNestedToggles = parent.querySelectorAll('.tree-toggle');
-                    allNestedToggles.forEach(nestedToggle => {
-                        nestedToggle.textContent = '+';
-                    });
-                    
-                    // Also collapse all nested content sections
-                    const allChildSections = document.querySelectorAll(`.content-section[data-parent="${sectionId}"]`);
-                    allChildSections.forEach(section => {
-                        section.classList.add('hidden');
-                        
-                        // Also hide all descendants
-                        const descendants = document.querySelectorAll(`.content-section[data-ancestor="${sectionId}"]`);
-                        descendants.forEach(desc => {
-                            desc.classList.add('hidden');
-                        });
-                    });
-                }
-            }
+            toggleTreeSection(this);
         });
     });
     
-    // Add click events to navigate to section
+    // Add click events to navigate to section and expand tree
     const treeItems = document.querySelectorAll('.tree-item');
     treeItems.forEach(item => {
-        item.addEventListener('click', function() {
+        item.addEventListener('click', function(e) {
             const sectionId = this.getAttribute('data-section');
+            
+            // If this tree item has children (has a toggle button), expand/collapse it first
+            const toggleButton = this.querySelector('.tree-toggle');
+            if (toggleButton && e.target !== toggleButton) {
+                toggleTreeSection(toggleButton);
+            }
+            
+            // Navigate to the section
             document.getElementById(sectionId).scrollIntoView({ behavior: 'smooth' });
             
             // Update active state
@@ -272,6 +240,51 @@ function renderTreeView(sections) {
             this.classList.add('active');
         });
     });
+}
+
+// New helper function to handle the toggling logic
+function toggleTreeSection(toggleButton) {
+    const parent = toggleButton.parentElement.parentElement;
+    const ul = parent.querySelector('ul');
+    const sectionId = toggleButton.parentElement.getAttribute('data-section');
+    
+    if (ul) {
+        const isCollapsing = !ul.classList.contains('hidden');
+        
+        // Toggle the immediate children visibility in TOC
+        ul.classList.toggle('hidden');
+        toggleButton.textContent = isCollapsing ? '+' : '-';
+        
+        // Toggle corresponding content sections
+        toggleContentSections(sectionId, isCollapsing);
+        
+        // More explicit way to handle all nested children when collapsing
+        if (isCollapsing) {
+            // Find ALL nested ULs and collapse them
+            const allNestedUls = parent.querySelectorAll('ul');
+            allNestedUls.forEach(nestedUl => {
+                nestedUl.classList.add('hidden');
+            });
+            
+            // Update ALL nested toggle buttons
+            const allNestedToggles = parent.querySelectorAll('.tree-toggle');
+            allNestedToggles.forEach(nestedToggle => {
+                nestedToggle.textContent = '+';
+            });
+            
+            // Also collapse all nested content sections
+            const allChildSections = document.querySelectorAll(`.content-section[data-parent="${sectionId}"]`);
+            allChildSections.forEach(section => {
+                section.classList.add('hidden');
+                
+                // Also hide all descendants
+                const descendants = document.querySelectorAll(`.content-section[data-ancestor="${sectionId}"]`);
+                descendants.forEach(desc => {
+                    desc.classList.add('hidden');
+                });
+            });
+        }
+    }
 }
 
 // Function to toggle content sections
